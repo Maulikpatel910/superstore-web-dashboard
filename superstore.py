@@ -2,26 +2,23 @@ import streamlit as st
 import plotly.express as px
 import plotly.figure_factory as ff
 import pandas as pd
-import os
 import warnings
+
 warnings.filterwarnings('ignore')
 
 st.set_page_config(page_title="Superstore!!!", page_icon=":bar_chart:", layout="wide")
 st.title("📊 Sample Superstore EDA")
 st.markdown('<style>div.block-container{padding-top:2rem;}</style>', unsafe_allow_html=True)
 
-# Load local dataset directly
-
+# Load dataset
 df = pd.read_csv("Superstore.csv", encoding="ISO-8859-1")
-
-# Clean column names
 df.columns = df.columns.str.strip()
 
-# Date conversion with mixed format handling
+# Convert Order Date
 try:
     df["Order Date"] = pd.to_datetime(df["Order Date"], format='mixed')
 except Exception as e:
-    st.error(f"Failed to parse 'Order Date' column: {e}")
+    st.error(f"Failed to parse 'Order Date': {e}")
 
 startDate = df["Order Date"].min()
 endDate = df["Order Date"].max()
@@ -34,7 +31,7 @@ with col2:
 
 df = df[(df["Order Date"] >= pd.to_datetime(date1)) & (df["Order Date"] <= pd.to_datetime(date2))].copy()
 
-# Sidebar filters
+# Sidebar Filters
 st.sidebar.header("Choose your filters:")
 region = st.sidebar.multiselect("Pick Region", df["Region"].unique())
 df_region = df[df["Region"].isin(region)] if region else df
@@ -45,7 +42,7 @@ df_state = df_region[df_region["State"].isin(state)] if state else df_region
 city = st.sidebar.multiselect("Pick City", df_state["City"].unique())
 filtered_df = df_state[df_state["City"].isin(city)] if city else df_state
 
-# --- Charts ---
+# Grouped Sales Data
 category_df = filtered_df.groupby("Category", as_index=False)["Sales"].sum()
 region_df = filtered_df.groupby("Region", as_index=False)["Sales"].sum()
 
@@ -53,24 +50,15 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Category-wise Sales")
     fig = px.bar(
-        category_df,
-        x="Category",
-        y="Sales",
+        category_df, x="Category", y="Sales",
         text=['${:,.2f}'.format(x) for x in category_df["Sales"]],
-        template="seaborn",
-        height=400
+        template="seaborn", height=400
     )
     st.plotly_chart(fig, use_container_width=True)
 
 with col2:
     st.subheader("Region-wise Sales")
-    fig = px.pie(
-        region_df,
-        values="Sales",
-        names="Region",
-        hole=0.5,
-        height=400
-    )
+    fig = px.pie(region_df, values="Sales", names="Region", hole=0.5, height=400)
     st.plotly_chart(fig, use_container_width=True)
 
 cl1, cl2 = st.columns(2)
@@ -86,7 +74,7 @@ with cl2:
         csv = region_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Data", data=csv, file_name="Region.csv", mime="text/csv")
 
-# Time series chart
+# Time Series
 filtered_df["month_year"] = filtered_df["Order Date"].dt.to_period("M")
 st.subheader('📈 Time Series Analysis')
 linechart = pd.DataFrame(filtered_df.groupby(filtered_df["month_year"].dt.strftime("%Y-%b"))["Sales"].sum()).reset_index()
@@ -105,7 +93,7 @@ fig3 = px.treemap(filtered_df, path=["Region", "Category", "Sub-Category"],
 fig3.update_layout(width=800, height=650)
 st.plotly_chart(fig3, use_container_width=True)
 
-# Segment and Category pie charts
+# Segment & Category Pie Charts
 chart1, chart2 = st.columns(2)
 with chart1:
     st.subheader('Segment-wise Sales')
@@ -119,7 +107,7 @@ with chart2:
     fig.update_traces(text=filtered_df["Category"], textposition="inside")
     st.plotly_chart(fig, use_container_width=True)
 
-# Month-wise Sub-category Sales Summary
+# Sub-Category Sales Summary Table
 st.subheader(":point_right: Month-wise Sub-category Sales Summary")
 with st.expander("Summary_Table"):
     df_sample = df[0:5][["Region", "City", "Category", "Sales", "Profit", "Quantity"]]
@@ -147,14 +135,16 @@ with st.expander("Summary_Table"):
         csv = pivot.to_csv().encode("utf-8")
         st.download_button("Download Pivot Table", data=csv, file_name="Month_SubCategory_Sales.csv", mime="text/csv")
 
-# Scatter Plot
+# Scatter Plot: Sales vs Profit
 st.subheader("Scatter Plot: Sales vs Profit")
 data1 = px.scatter(filtered_df, x="Sales", y="Profit", size="Quantity")
 data1.update_layout(
-    title="Relationship between Sales and Profits using Scatter Plot.",
-    titlefont=dict(size=20),
-    xaxis=dict(title="Sales", titlefont=dict(size=16)),
-    yaxis=dict(title="Profit", titlefont=dict(size=16))
+    title=dict(
+        text="Relationship between Sales and Profits using Scatter Plot.",
+        font=dict(size=20)
+    ),
+    xaxis=dict(title=dict(text="Sales", font=dict(size=16))),
+    yaxis=dict(title=dict(text="Profit", font=dict(size=16)))
 )
 st.plotly_chart(data1, use_container_width=True)
 
@@ -164,5 +154,3 @@ with st.expander("View Data"):
 # Download Original Dataset
 csv = df.to_csv(index=False).encode('utf-8')
 st.download_button("Download Original Dataset", data=csv, file_name="Original_Dataset.csv", mime="text/csv")
-
-
