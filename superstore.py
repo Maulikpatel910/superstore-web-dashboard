@@ -11,7 +11,7 @@ st.title("📊 Sample Superstore EDA")
 st.markdown('<style>div.block-container{padding-top:2rem;}</style>', unsafe_allow_html=True)
 
 # Load local dataset directly
-os.chdir(r"C:\Users\HP\OneDrive\Desktop\python")
+
 df = pd.read_csv("Superstore.csv", encoding="ISO-8859-1")
 
 # Clean column names
@@ -164,4 +164,5 @@ with st.expander("View Data"):
 # Download Original Dataset
 csv = df.to_csv(index=False).encode('utf-8')
 st.download_button("Download Original Dataset", data=csv, file_name="Original_Dataset.csv", mime="text/csv")
+
 
